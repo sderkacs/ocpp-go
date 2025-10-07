@@ -1,6 +1,7 @@
 package ocpp2_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"time"
@@ -343,4 +344,145 @@ func (suite *OcppV2TestSuite) TestNowDateTime() {
 	now := types.Now()
 	suite.NotNil(now)
 	suite.True(time.Now().Sub(now.Time) < 1*time.Second)
+}
+
+func (suite *OcppV2TestSuite) TestCustomDataValidation() {
+	type testType struct {
+		StringField string  `json:"stringField,omitempty"`
+		BoolField   bool    `json:"boolField,omitempty"`
+		IntField    int     `json:"intField,omitempty"`
+		FloatField  float64 `json:"floatField,omitempty"`
+		BytesField  []byte  `json:"bytesField,omitempty"`
+	}
+
+	var testTable = []GenericTestEntry{
+		{types.CustomData{VendorID: "com.mycompany.customheartbeat", Values: map[string]interface{}{"mainMeterValue": 12345, "sessionsToDate": 342}}, true},
+		{types.CustomData{VendorID: "com.mycompany.customheartbeat", Values: map[string]interface{}{}}, true},
+		{types.CustomData{VendorID: "com.mycompany.customheartbeat"}, true},
+		{types.CustomData{VendorID: "", Values: map[string]interface{}{"mainMeterValue": 12345, "sessionsToDate": 342}}, false},
+		{types.CustomData{}, false},
+		{types.CustomData{Values: map[string]interface{}{"vendorId": "com.mycompany.customheartbeat", "mainMeterValue": 12345, "sessionsToDate": 342}}, false},
+		{types.CustomData{VendorID: "com.mycompany.customheartbeat", Values: map[string]interface{}{"testType": testType{
+			StringField: "a test string",
+			IntField:    42,
+			BoolField:   true,
+			FloatField:  3.1416,
+			BytesField:  []byte{0x01, 0x02, 0x03},
+		}}}, true},
+	}
+	ExecuteGenericTestTable(suite.T(), testTable)
+}
+
+func (suite *OcppV2TestSuite) TestUnmarshalCustomData() {
+	// Note: numeric values ​​are represented as float64,
+	// since the JSON unmarshaller uses this type by default.
+	testTable := []struct {
+		RawCustomData    string
+		ExpectedVendorId string
+		ExpectedValues   map[string]interface{}
+	}{
+		{
+			RawCustomData:    "{\"vendorId\":\"com.mycompany.customheartbeat\",\"mainMeterValue\":12345,\"sessionsToDate\":342}",
+			ExpectedVendorId: "com.mycompany.customheartbeat",
+			ExpectedValues:   map[string]interface{}{"mainMeterValue": float64(12345), "sessionsToDate": float64(342)},
+		},
+		{
+			RawCustomData:    "{\"vendorId\":\"com.mycompany.customheartbeat\"}",
+			ExpectedVendorId: "com.mycompany.customheartbeat",
+			ExpectedValues:   map[string]interface{}{},
+		},
+		{
+			RawCustomData:    "{\"mainMeterValue\":12345,\"sessionsToDate\":342}",
+			ExpectedVendorId: "",
+			ExpectedValues:   map[string]interface{}{"mainMeterValue": float64(12345), "sessionsToDate": float64(342)},
+		},
+		{
+			RawCustomData:    "{\"vendorId\":\"\",\"mainMeterValue\":12345,\"sessionsToDate\":342}",
+			ExpectedVendorId: "",
+			ExpectedValues:   map[string]interface{}{"mainMeterValue": float64(12345), "sessionsToDate": float64(342)},
+		},
+		{
+			RawCustomData:    "{\"vendorId\":\"\",\"mainMeterValue\":12345,\"sessionsToDate\":342}",
+			ExpectedVendorId: "",
+			ExpectedValues:   map[string]interface{}{"mainMeterValue": float64(12345), "sessionsToDate": float64(342)},
+		},
+		{
+			RawCustomData:    "{}",
+			ExpectedVendorId: "",
+			ExpectedValues:   map[string]interface{}{},
+		},
+		{
+			RawCustomData:    "{\"testType\":{\"stringField\":\"a test string\",\"boolField\":true,\"intField\":42,\"floatField\":3.1416,\"bytesField\":\"AQID\"},\"vendorId\":\"com.mycompany.customheartbeat\"}",
+			ExpectedVendorId: "com.mycompany.customheartbeat",
+			ExpectedValues: map[string]interface{}{"testType": map[string]interface{}{
+				"boolField":   true,
+				"bytesField":  base64.StdEncoding.EncodeToString([]byte{0x01, 0x02, 0x03}), // encoding/json uses base64 for []byte
+				"floatField":  float64(3.1416),
+				"intField":    float64(42),
+				"stringField": "a test string",
+			}},
+		},
+	}
+
+	for _, cd := range testTable {
+		jsonStr := []byte(cd.RawCustomData)
+		var customData types.CustomData
+		err := json.Unmarshal(jsonStr, &customData)
+
+		suite.NoError(err)
+		suite.NotNil(customData)
+		suite.Equal(cd.ExpectedVendorId, customData.VendorID)
+		suite.Equal(cd.ExpectedValues, customData.Values)
+	}
+}
+
+func (suite *OcppV2TestSuite) TestMarshalCustomData() {
+	type testType struct {
+		StringField string  `json:"stringField,omitempty"`
+		BoolField   bool    `json:"boolField,omitempty"`
+		IntField    int     `json:"intField,omitempty"`
+		FloatField  float64 `json:"floatField,omitempty"`
+		BytesField  []byte  `json:"bytesField,omitempty"`
+	}
+
+	testTable := []struct {
+		CustomData     types.CustomData
+		ExpectedOutput string
+	}{
+		{
+			CustomData:     types.CustomData{VendorID: "com.mycompany.customheartbeat", Values: map[string]interface{}{"mainMeterValue": 12345, "sessionsToDate": 342}},
+			ExpectedOutput: "{\"mainMeterValue\":12345,\"sessionsToDate\":342,\"vendorId\":\"com.mycompany.customheartbeat\"}",
+		},
+		{
+			CustomData:     types.CustomData{Values: map[string]interface{}{"mainMeterValue": 12345, "sessionsToDate": 342}},
+			ExpectedOutput: "{\"mainMeterValue\":12345,\"sessionsToDate\":342,\"vendorId\":\"\"}",
+		},
+		{
+			CustomData:     types.CustomData{Values: map[string]interface{}{"nullableValue": nil}},
+			ExpectedOutput: "{\"nullableValue\":null,\"vendorId\":\"\"}",
+		},
+		{
+			CustomData:     types.CustomData{Values: map[string]interface{}{"floatValue": 7878324.234}},
+			ExpectedOutput: "{\"floatValue\":7878324.234,\"vendorId\":\"\"}",
+		},
+		{
+			CustomData: types.CustomData{VendorID: "com.mycompany.customheartbeat", Values: map[string]interface{}{"testType": testType{
+				StringField: "a test string",
+				IntField:    42,
+				BoolField:   true,
+				FloatField:  3.1416,
+				BytesField:  []byte{0x01, 0x02, 0x03},
+			}}},
+			ExpectedOutput: "{\"testType\":{\"stringField\":\"a test string\",\"boolField\":true,\"intField\":42,\"floatField\":3.1416,\"bytesField\":\"AQID\"},\"vendorId\":\"com.mycompany.customheartbeat\"}",
+		},
+		{
+			CustomData:     types.CustomData{},
+			ExpectedOutput: "{\"vendorId\":\"\"}",
+		},
+	}
+	for _, dt := range testTable {
+		rawJson, err := dt.CustomData.MarshalJSON()
+		suite.NoError(err)
+		suite.Equal(dt.ExpectedOutput, string(rawJson))
+	}
 }
