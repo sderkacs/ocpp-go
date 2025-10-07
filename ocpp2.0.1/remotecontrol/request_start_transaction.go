@@ -36,6 +36,7 @@ type RequestStartTransactionRequest struct {
 	IDToken         types.IdToken          `json:"idToken"`
 	ChargingProfile *types.ChargingProfile `json:"chargingProfile,omitempty"`
 	GroupIdToken    *types.IdToken         `json:"groupIdToken,omitempty" validate:"omitempty,dive"`
+	CustomData      *types.CustomData      `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // This field definition of the RequestStartTransaction response payload, sent by the Charging Station to the CSMS in response to a RequestStartTransactionRequest.
@@ -44,6 +45,7 @@ type RequestStartTransactionResponse struct {
 	Status        RequestStartStopStatus `json:"status" validate:"required,requestStartStopStatus"`
 	TransactionID string                 `json:"transactionId,omitempty" validate:"max=36"`
 	StatusInfo    *types.StatusInfo      `json:"statusInfo,omitempty"`
+	CustomData    *types.CustomData      `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // The CSMS may remotely start a transaction for a user.

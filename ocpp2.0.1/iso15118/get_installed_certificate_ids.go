@@ -32,6 +32,7 @@ func isValidGetInstalledCertificateStatus(fl validator.FieldLevel) bool {
 // The field definition of the GetInstalledCertificateIdsRequest PDU sent by the CSMS to the Charging Station.
 type GetInstalledCertificateIdsRequest struct {
 	CertificateTypes []types.CertificateUse `json:"certificateType" validate:"omitempty,dive,certificateUse"`
+	CustomData       *types.CustomData      `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // The field definition of the GetInstalledCertificateIds response payload sent by the Charging Station to the CSMS in response to a GetInstalledCertificateIdsRequest.
@@ -39,6 +40,7 @@ type GetInstalledCertificateIdsResponse struct {
 	Status                   GetInstalledCertificateStatus    `json:"status" validate:"required,getInstalledCertificateStatus"`
 	StatusInfo               *types.StatusInfo                `json:"statusInfo,omitempty" validate:"omitempty"`
 	CertificateHashDataChain []types.CertificateHashDataChain `json:"certificateHashDataChain,omitempty" validate:"omitempty,dive"`
+	CustomData               *types.CustomData                `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // To facilitate the management of the Charging Station’s installed certificates, a method of retrieving the installed certificates is provided.

@@ -32,6 +32,7 @@ func isValidClearCacheStatus(fl validator.FieldLevel) bool {
 
 // The field definition of the ClearCache request payload sent by the CSMS to the Charging Station.
 type ClearCacheRequest struct {
+	CustomData *types.CustomData `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // This field definition of the ClearCache response payload, sent by the Charging Station to the CSMS in response to a ClearCacheRequest.
@@ -39,6 +40,7 @@ type ClearCacheRequest struct {
 type ClearCacheResponse struct {
 	Status     ClearCacheStatus  `json:"status" validate:"required,cacheStatus201"`
 	StatusInfo *types.StatusInfo `json:"statusInfo,omitempty" validate:"omitempty"`
+	CustomData *types.CustomData `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // CSMS can request a Charging Station to clear its Authorization Cache.

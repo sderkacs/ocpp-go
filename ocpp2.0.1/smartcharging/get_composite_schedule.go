@@ -39,6 +39,7 @@ type GetCompositeScheduleRequest struct {
 	Duration         int                        `json:"duration" validate:"gte=0"`
 	ChargingRateUnit types.ChargingRateUnitType `json:"chargingRateUnit,omitempty" validate:"omitempty,chargingRateUnit201"`
 	EvseID           int                        `json:"evseId" validate:"gte=0"`
+	CustomData       *types.CustomData          `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // This field definition of the GetCompositeSchedule response payload, sent by the Charging System to the CSMS in response to a GetCompositeScheduleRequest.
@@ -47,6 +48,7 @@ type GetCompositeScheduleResponse struct {
 	Status     GetCompositeScheduleStatus `json:"status" validate:"required,getCompositeScheduleStatus"`
 	StatusInfo *types.StatusInfo          `json:"statusInfo,omitempty" validate:"omitempty"`
 	Schedule   *CompositeSchedule         `json:"schedule,omitempty" validate:"omitempty"`
+	CustomData *types.CustomData          `json:"customData,omitempty" validate:"omitempty"`
 }
 
 // The CSMS MAY request the Charging System to report the Composite Charging Schedule by sending a GetCompositeScheduleRequest.
